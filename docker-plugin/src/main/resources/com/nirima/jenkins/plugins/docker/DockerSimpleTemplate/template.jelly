@@ -51,6 +51,10 @@
             <f:checkbox/>
         </f:entry>
 
+        <f:entry title="${%Always Pull Containers}" field="alwaysPull">
+            <f:checkbox/>
+        </f:entry>
+
         <f:entry title="${%Allocate a pseudo-TTY}" field="tty">
             <f:checkbox/>
         </f:entry>

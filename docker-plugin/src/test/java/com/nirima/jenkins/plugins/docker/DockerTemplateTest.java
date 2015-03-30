@@ -52,9 +52,10 @@ public class DockerTemplateTest {
                 bindPorts,
                 bindAllPorts,
                 privileged,
-                tty);
+                tty,
+                false);
 
-              
+
         return instance;
     }
 

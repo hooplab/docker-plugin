@@ -15,11 +15,14 @@ import com.github.dockerjava.api.command.InspectContainerResponse;
 import com.github.dockerjava.api.model.PortBinding;
 import com.trilead.ssh2.Connection;
 
+import org.apache.commons.io.IOUtils;
+import org.glassfish.jersey.client.ClientResponse;
 import org.jenkinsci.plugins.durabletask.executors.OnceRetentionStrategy;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -99,6 +102,7 @@ public class DockerTemplate extends DockerTemplateBase implements Describable<Do
     private transient /*almost final*/ Set<LabelAtom> labelSet;
     public transient DockerCloud parent;
 
+    public final boolean alwaysPull;
 
     @DataBoundConstructor
     public DockerTemplate(String image, String labelString,
@@ -118,7 +122,8 @@ public class DockerTemplate extends DockerTemplateBase implements Describable<Do
                           String bindPorts,
                           boolean bindAllPorts,
                           boolean privileged,
-                          boolean tty
+                          boolean tty,
+                          boolean alwaysPull
 
     ) {
         super(image, dnsString,dockerCommand,volumesString,volumesFrom,environmentsString,lxcConfString,hostname, memoryLimit, cpuShares,
@@ -136,6 +141,8 @@ public class DockerTemplate extends DockerTemplateBase implements Describable<Do
         this.suffixStartSlaveCmd = suffixStartSlaveCmd;
         this.remoteFs =  Strings.isNullOrEmpty(remoteFs)?"/home/jenkins":remoteFs;
         this.remoteFsMapping = remoteFsMapping;
+
+        this.alwaysPull = alwaysPull;
 
         if (instanceCapStr.equals("")) {
             this.instanceCap = Integer.MAX_VALUE;
@@ -222,8 +229,17 @@ public class DockerTemplate extends DockerTemplateBase implements Describable<Do
     }
 
     public DockerSlave provision(StreamTaskListener listener) throws IOException, Descriptor.FormException, DockerException {
-            PrintStream logger = listener.getLogger();
+        PrintStream logger = listener.getLogger();
 
+        if (alwaysPull) {
+            DockerClient dockerClient = getParent().connect();
+            logger.println("Attempting to pull " + image);
+            InputStream pullImageResult = dockerClient.pullImageCmd(image).exec();
+
+            String strResult = IOUtils.toString(pullImageResult);
+            LOGGER.info("Pull result = " + strResult);
+
+          }
 
         logger.println("Launching " + image );
 
